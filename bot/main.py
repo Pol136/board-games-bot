@@ -1,16 +1,18 @@
-# main.py
 import random
 import pickle
 import json
 import nltk
-import re
-import pymorphy2
+import warnings
 
+from text_utils import clean_and_lemmatize
 from bot_config import BOT_CONFIG
+from wikipedia_search import search_in_wikipedia, wants_wikipedia
+
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 nltk.download('punkt')
-morph = pymorphy2.MorphAnalyzer()
+
 
 # --- Загрузка модели ---
 with open('intent_model.pkl', 'rb') as f:
@@ -22,15 +24,7 @@ with open('vectorizer.pkl', 'rb') as f:
 # --- Загрузка диалогов ---
 with open('cleaned_dialogues.json', encoding='utf-8') as f:
     dataset = json.load(f)
-
-# --- Очистка текста ---
-def clean_and_lemmatize(text):
-    text = text.lower()
-    text = re.sub(r'[^а-яё0-9\s\-]', '', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-    tokens = text.split()
-    lemmas = [morph.parse(token)[0].normal_form for token in tokens]
-    return ' '.join(lemmas)
+    # dataset = random.sample(dataset, 1000)
 
 # def clean_text(text):
 #     alphabet = ' абвгдеёжзийклмнопрстуфхцчшщъыьэюя-1234567890'
@@ -67,18 +61,28 @@ def get_failure_phrase():
 # --- Главная функция бота ---
 def bot(text):
     try:
+        # 1. Если явно просит Википедию
+        if wants_wikipedia(text):
+            wiki = search_in_wikipedia(text)
+            if wiki:
+                return wiki
+            return "Я не нашёл подходящую статью в Википедии 😕"
+
+        # 2. Классификация намерения
         intent = get_intent_ml(text)
         if intent:
             return get_answer_by_intent(intent)
 
+        # 3. Генеративный ответ
         answer = get_generative_answer(text)
         if answer:
             return answer
 
         return get_failure_phrase()
     except Exception as e:
-        print("Ошибка в боте:", e)
-        return "Что-то пошло не так... 😢"
+        print("Ошибка:", e)
+        return "Что-то пошло не так..."
+
 
 # --- Консольное тестирование ---
 if __name__ == '__main__':

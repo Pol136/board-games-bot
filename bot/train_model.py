@@ -1,10 +1,9 @@
-# train_model.py
 import pickle
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import LinearSVC
 from bot_config import BOT_CONFIG
 import pymorphy2
 import re
+from sklearn.svm import LinearSVC
 
 # Инициализация морфологического анализатора
 morph = pymorphy2.MorphAnalyzer()
@@ -43,4 +42,4 @@ with open('intent_model.pkl', 'wb') as f:
 with open('vectorizer.pkl', 'wb') as f:
     pickle.dump(vectorizer, f)
 
-print("✅ Модель обучена на леммах и сохранена.")
+print("Модель обучена и сохранена")
