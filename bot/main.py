@@ -3,9 +3,14 @@ import random
 import pickle
 import json
 import nltk
+import re
+import pymorphy2
+
 from bot_config import BOT_CONFIG
 
+
 nltk.download('punkt')
+morph = pymorphy2.MorphAnalyzer()
 
 # --- Загрузка модели ---
 with open('intent_model.pkl', 'rb') as f:
@@ -19,13 +24,21 @@ with open('cleaned_dialogues.json', encoding='utf-8') as f:
     dataset = json.load(f)
 
 # --- Очистка текста ---
-def clean_text(text):
-    alphabet = ' абвгдеёжзийклмнопрстуфхцчшщъыьэюя-1234567890'
-    return ''.join(ch for ch in text.lower() if ch in alphabet)
+def clean_and_lemmatize(text):
+    text = text.lower()
+    text = re.sub(r'[^а-яё0-9\s\-]', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    tokens = text.split()
+    lemmas = [morph.parse(token)[0].normal_form for token in tokens]
+    return ' '.join(lemmas)
+
+# def clean_text(text):
+#     alphabet = ' абвгдеёжзийклмнопрстуфхцчшщъыьэюя-1234567890'
+#     return ''.join(ch for ch in text.lower() if ch in alphabet)
 
 # --- Генерация ответа из диалогов ---
 def get_generative_answer(text):
-    text = clean_text(text)
+    text = clean_and_lemmatize(text)
     candidates = []
 
     for question, answer in dataset:
@@ -39,7 +52,8 @@ def get_generative_answer(text):
 
 # --- ML-предсказание намерения ---
 def get_intent_ml(text):
-    text_vector = vectorizer.transform([text])
+    lemmatized = clean_and_lemmatize(text)
+    text_vector = vectorizer.transform([lemmatized])
     return clf.predict(text_vector)[0]
 
 # --- Ответ по намерению ---
