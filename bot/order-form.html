@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Оформление заказа</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .game-row {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .game-row select {
+      width: 60px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px;
+      width: 100%;
+      background-color: #30a14e;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Оформление заказа</h2>
+
+  <label for="name">Имя</label>
+  <input type="text" id="name" placeholder="Ваше имя">
+
+  <label for="pickup">Пункт выдачи</label>
+  <select id="pickup">
+    <option>Магазин 1</option>
+    <option>Магазин 2</option>
+    <option>Магазин 3</option>
+  </select>
+
+  <label>Выберите игры и количество</label>
+
+  <div class="game-row">
+    <span>Имаджинариум</span>
+    <select id="game_imaginarium">
+      <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+      <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+    </select>
+  </div>
+
+  <div class="game-row">
+    <span>Каркассон</span>
+    <select id="game_carcassonne">
+      <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+      <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+    </select>
+  </div>
+
+  <div class="game-row">
+    <span>7 чудес</span>
+    <select id="game_7wonders">
+      <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+      <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+    </select>
+  </div>
+
+  <button onclick="submitOrder()">Заказать</button>
+
+  <script>
+    function submitOrder() {
+      const name = document.getElementById('name').value.trim();
+      const pickup = document.getElementById('pickup').value;
+
+      const qtyImaginarium = +document.getElementById('game_imaginarium').value;
+      const qtyCarcassonne = +document.getElementById('game_carcassonne').value;
+      const qty7Wonders = +document.getElementById('game_7wonders').value;
+
+      const games = [];
+      if (qtyImaginarium) games.push(`Имаджинариум ×${qtyImaginarium}`);
+      if (qtyCarcassonne) games.push(`Каркассон ×${qtyCarcassonne}`);
+      if (qty7Wonders) games.push(`7 чудес ×${qty7Wonders}`);
+
+      if (!name || games.length === 0) {
+        alert('Пожалуйста, введите имя и выберите хотя бы одну игру.');
+        return;
+      }
+
+      const order = {
+        name,
+        pickup,
+        games
+      };
+
+      if (window.Telegram && window.Telegram.WebApp) {
+        Telegram.WebApp.sendData(JSON.stringify(order));
+      }
+
+      document.body.innerHTML = `
+        <h2>✅ Заказ оформлен!</h2>
+        <p>Спасибо, ${name}!<br>Ждите сообщение о доставке.</p>
+      `;
+    }
+  </script>
+</body>
+</html>
