@@ -1,3 +1,6 @@
-from text_utils import clean_and_lemmatize
+import csv
 
-print(clean_and_lemmatize("хелоу"))
+with open("orders.csv", "r", encoding="utf-8") as f:
+    reader = csv.reader(f)
+    for row in reader:
+        print(int(row[1]))
