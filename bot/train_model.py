@@ -4,18 +4,10 @@ from bot_config import BOT_CONFIG
 import pymorphy2
 import re
 from sklearn.svm import LinearSVC
+from text_utils import clean_and_lemmatize
 
 # Инициализация морфологического анализатора
 morph = pymorphy2.MorphAnalyzer()
-
-# Функция для очистки и лемматизации текста
-def clean_and_lemmatize(text):
-    text = text.lower()
-    text = re.sub(r'[^а-яё0-9\s\-]', '', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-    tokens = text.split()
-    lemmas = [morph.parse(token)[0].normal_form for token in tokens]
-    return ' '.join(lemmas)
 
 # Подготовка обучающей выборки
 X_text = []
