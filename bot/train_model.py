@@ -3,7 +3,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from bot_config import BOT_CONFIG
 import pymorphy2
 import re
-from sklearn.svm import LinearSVC
+# from sklearn.svm import LinearSVC
+from sklearn.linear_model import LogisticRegression
 from text_utils import clean_and_lemmatize
 
 # Инициализация морфологического анализатора
@@ -24,7 +25,7 @@ vectorizer = TfidfVectorizer(analyzer='word')
 X = vectorizer.fit_transform(X_text)
 
 # Обучение модели
-clf = LinearSVC()
+clf = LogisticRegression()
 clf.fit(X, y)
 
 # Сохраняем модель и векторизатор

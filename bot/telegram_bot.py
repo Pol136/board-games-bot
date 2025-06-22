@@ -1,18 +1,17 @@
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
-from aiogram.types import Message
+from aiogram.types import ReplyKeyboardMarkup
 from aiogram.utils import executor
-from aiogram.types import WebAppData
 import json
 import csv
 from datetime import datetime
+import os
+import aiohttp
+import speech_recognition as sr
+from pydub import AudioSegment
 
 from config import API_TOKEN, ADMIN_ID
 from main import bot, get_intent_ml
 
-# from bot_logic import bot
-
-# Создаём бота и диспетчер
 bot_instance = Bot(token=API_TOKEN)
 dp = Dispatcher(bot_instance)
 
@@ -26,6 +25,7 @@ def get_order_keyboard():
     return keyboard
 
 
+# команда старт
 @dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
     await message.answer(
@@ -40,6 +40,7 @@ async def start_handler(message: types.Message):
     )
 
 
+# команда помощи
 @dp.message_handler(commands=['help'])
 async def help_handler(message: types.Message):
     await message.answer(
@@ -55,6 +56,7 @@ async def help_handler(message: types.Message):
     )
 
 
+# команда для просмотра заказов
 @dp.message_handler(commands=["orders"])
 async def show_user_orders(message: types.Message):
     user_id = int(message.from_user.id)
@@ -84,6 +86,7 @@ async def show_user_orders(message: types.Message):
         await message.answer("Список заказов пока пуст.")
 
 
+# админская команда для изменения статуса заказа
 @dp.message_handler(commands=["setstatus"])
 async def set_status_handler(message: types.Message):
     if message.from_user.id != ADMIN_ID:
@@ -144,12 +147,13 @@ async def set_status_handler(message: types.Message):
         await message.answer("⚠️ Не удалось обновить статус заказа.")
 
 
-
 # Обработка обычных текстовых сообщений
 @dp.message_handler()
 async def handle_message(message: types.Message):
+    print(">> Получено сообщение:", message.text)
     user_text = message.text
     intent = get_intent_ml(user_text)
+    print(intent)
 
     if intent == "order_game":
         await message.answer(
@@ -163,6 +167,42 @@ async def handle_message(message: types.Message):
     await message.answer(response)
 
 
+@dp.message_handler(content_types=types.ContentType.VOICE)
+async def handle_voice(message: types.Message):
+    try:
+        # Скачиваем файл
+        file_id = message.voice.file_id
+        file = await bot_instance.get_file(file_id)
+        file_path = file.file_path
+        voice_ogg = f"voice_{file_id}.ogg"
+        voice_wav = f"voice_{file_id}.wav"
+
+        await bot_instance.download_file(file_path, voice_ogg)
+
+        # Конвертируем ogg → wav
+        AudioSegment.from_file(voice_ogg).export(voice_wav, format="wav")
+
+        # Распознаём речь
+        recognizer = sr.Recognizer()
+        with sr.AudioFile(voice_wav) as source:
+            audio_data = recognizer.record(source)
+            text = recognizer.recognize_google(audio_data, language="ru-RU")
+
+        # Удаляем временные файлы
+        os.remove(voice_ogg)
+        os.remove(voice_wav)
+
+        # Ответ
+        response = bot(text)
+        await message.answer(f"Вы сказали: «{text}»\n\n📦 Ответ: {response}")
+
+    except sr.UnknownValueError:
+        await message.answer("😕 Я не смог разобрать, что вы сказали.")
+    except Exception as e:
+        print("❌ Ошибка при распознавании голоса:", e)
+        await message.answer("⚠️ Не удалось обработать голосовое сообщение.")
+
+
 # Обработчик нажатия кнопки Нет при предложении сделать заказ
 @dp.callback_query_handler(lambda c: c.data == 'cancel_order')
 async def cancel_order_callback(callback_query: types.CallbackQuery):
@@ -170,6 +210,7 @@ async def cancel_order_callback(callback_query: types.CallbackQuery):
     await callback_query.message.answer("Хорошо! Если передумаешь — я здесь 🙂")
 
 
+# обработчик данных с формы для создания заказа
 @dp.message_handler(content_types=types.ContentType.WEB_APP_DATA)
 async def process_webapp_data(message: types.Message):
     try:
